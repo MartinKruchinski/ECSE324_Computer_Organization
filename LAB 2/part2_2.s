@@ -5,9 +5,10 @@
 .equ HEX_3to0, 0xFF200020
 .equ HEX_4to5, 0xFF200030
 .equ loadTimer, 0xFFFEC600
+.equ EdgeBits, 0xFF20005C
 
 
-initialCount: .word 2000000 // 10 milisecond
+initialCount: .word 200000 // 10 milisecond
 					
 _start:
 	ldr r1, =HEX_3to0
@@ -47,11 +48,37 @@ ARM_TIM_config_ASM:
 	mov r9, #0x0
 	mov r11, #0x0
 	mov r12, #0x0
-	b ARM_TIM_read_INT_ASM
+	mov r5,#0b000
+	bl PB_clear_edgecp_ASM
+	b read_PB_edgecp_ASM
 
-
+read_PB_edgecp_ASM:
+	ldr r0, =EdgeBits
+	ldr r5, [r0]
+	//check for start button
+	cmp r5, #0b001
+	beq ARM_TIM_read_INT_ASM
+	//cmp r5, #0b011
+	//beq ARM_TIM_read_INT_ASM
+	//check for stop button
+	cmp r5, #0b011
+	bleq PB_clear_edgecp_ASM
+	//check for reset button
+	cmp r5, #0b100
+	bleq PB_clear_edgecp_ASM
+	beq _start
 	
-
+	b read_PB_edgecp_ASM
+	
+PB_clear_edgecp_ASM:
+	push {r2, r3}
+	ldr r2, =EdgeBits
+	ldr r3, [r2]
+	str r3, [r2]
+	pop {r2, r3}
+	bx lr
+	
+	
 ARM_TIM_read_INT_ASM:
 	mov r6, #0
 	ldr r1, =HEX_3to0
@@ -86,7 +113,7 @@ display_1:
 	mov r10, #0x0
 	mov r6, #0x0
 	cmp r7, #10
-	bllt ARM_TIM_read_INT_ASM
+	bllt read_PB_edgecp_ASM
 	mov r7, #0
 	mov r6, r7
 	bl HEX_write_ASM
@@ -111,7 +138,7 @@ display_2:
 	cmp r8, #10
 	bllt HEX_write_ASM
 	cmp r8, #10
-	blt ARM_TIM_read_INT_ASM //change to link?
+	blt read_PB_edgecp_ASM //change to link?
 	//mov r8, #0
 	//mov r6, r8
 	//bl HEX_write_ASM
@@ -139,7 +166,7 @@ display_3:
 	bllt HEX_write_ASM
 	mov r8, #0
 	cmp r9, #6
-	blt ARM_TIM_read_INT_ASM //change to link?
+	blt read_PB_edgecp_ASM //change to link?
 	//mov r8, #0
 	//mov r6, r8
 	//bl HEX_write_ASM
@@ -172,7 +199,7 @@ display_4:
 	mov r8, #0
 	mov r9, #0
 	cmp r11, #10
-	blt ARM_TIM_read_INT_ASM //change to link?
+	blt read_PB_edgecp_ASM //change to link?
 	mov r10, #0x11
 	b display_5
 	
@@ -205,7 +232,7 @@ display_5:
 	mov r9, #0
 	mov r11, #0
 	cmp r12, #6
-	blt ARM_TIM_read_INT_ASM //change to link?
+	blt read_PB_edgecp_ASM //change to link?
 	b end
 	
 ARM_TIM_clear_INT_ASM:
