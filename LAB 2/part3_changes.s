@@ -20,7 +20,7 @@ B SERVICE_FIQ       // FIQ interrupt vector
 .equ loadTimer, 0xFFFEC600
 .equ MaskBits, 0xFF200058
 .equ EdgeBits, 0xFF20005C
-initialCount: .word 200000 // 10 milisecond
+initialCount: .word 2000000 // 10 milisecond
 
 _start:
     /* Set up stack pointers for IRQ and SVC processor modes */
@@ -58,17 +58,23 @@ _start:
 	bl HEX_write_ASM
 	mov r10, #0x11
 	bl HEX_write_ASM
+	mov r8, #0x0
+	mov r9, #0x0
+	mov r11, #0x0
+	mov r12, #0x0
+	mov r6, #0
+	
 
 IDLE:
-	
 	ldr r0, =PB_int_flag
 	ldr r1, [r0]
 	cmp r1, #0b001
-	beq ARM_TIM_read_INT_ASM
+	beq display_0
 	cmp r1, #0b011
 	bleq PB_clear_edgecp_ASM
 	cmp r1, #0b100
 	bleq PB_clear_edgecp_ASM
+	beq _start
     B IDLE 
 	
 
@@ -125,7 +131,8 @@ CONFIG_GIC:
     MOV R1, #1   //CHANGE          // this field is a bit-mask; bit 0 targets cpu0
     BL CONFIG_INTERRUPT
 	MOV R0, #73            // KEY port (Interrupt ID = 73)
-    MOV R1, #1             // this field is a bit-mask; bit 0 targets cpu0
+    mov r3, #0
+	MOV R1, #1             // this field is a bit-mask; bit 0 targets cpu0
     BL CONFIG_INTERRUPT
 	
 
@@ -198,9 +205,8 @@ ARM_TIM_config_ASM:
 	str r0, [r2] //loading initial count value into timer
 	mov r3, #0b111 // I=1, A=1, E=1
 	strb r3, [r2, #0x8] // write to timer control register
-	mov r3, #0b0
-	strb r3, [r2, #0x9] //store vlaue 1 in the prescaler
-	//CLEAR TIME HAS REACHED 0?
+	//mov r3, #0b0
+	//strb r3, [r2, #0x9] //store vlaue 1 in the prescaler
 	bx lr
 
 enable_PB_INT_ASM:
@@ -213,12 +219,13 @@ enable_PB_INT_ASM:
 
 
 ARM_TIM_ISR:
+	//add r3, r3, #1
 	ldr r0, =0xFFFEC60C
 	ldr r1, [r0]
-	mov r2, #1
-	cmp r1, #1
-	streq r2, [r0]
+	str r1, [r0]
 	ldr r0, =tim_int_flag
+	//mov r2, #0
+	//str r2, [r0]
 	str r1, [r0]
 	bx lr
 
@@ -236,21 +243,13 @@ PB_clear_edgecp_ASM:
 	pop {r2, r3}
 	bx lr
 	
-	
-ARM_TIM_read_INT_ASM:
-	mov r7, #0x0
-	mov r8, #0x0
-	mov r9, #0x0
-	mov r11, #0x0
-	mov r12, #0x0
-	mov r6, #0
-	ldr r1, =HEX_3to0
-	b display_0
 
 display_0:
 	ldr r1, =tim_int_flag
 	ldr r0, [r1]
-	cmp r1, #1
+	mov r3, #0
+	cmp r0, #1
+	streq r3, [r1]
 	blt display_0
 	bleq HEX_write_ASM
 	add r6, r6, #1
@@ -263,7 +262,9 @@ display_0:
 display_1:	
 	ldr r1, =tim_int_flag
 	ldr r0, [r1]
-	cmp r1, #1
+	mov r3, #0
+	cmp r0, #1
+	streq r3, [r1]
 	blt display_1
 	add r7, r7, #1
 	mov r6, r7
@@ -284,7 +285,9 @@ display_1:
 display_2:
 	ldr r1, =tim_int_flag
 	ldr r0, [r1]
-	cmp r1, #1
+	mov r3, #0
+	cmp r0, #1
+	streq r3, [r1]
 	blt display_2
 	add r8, r8, #1
 	mov r6, r8
@@ -303,9 +306,12 @@ display_2:
 	add r10, r10, #0x3
 	b display_3
 display_3:
+	
 	ldr r1, =tim_int_flag
 	ldr r0, [r1]
-	cmp r1, #1
+	mov r3, #0
+	cmp r0, #1
+	streq r3, [r1]
 	blt display_3
 	add r9, r9, #1
 	mov r6, r9
@@ -332,7 +338,9 @@ display_3:
 display_4:
 	ldr r1, =tim_int_flag
 	ldr r0, [r1]
-	cmp r1, #1
+	mov r3, #0
+	cmp r0, #1
+	streq r3, [r1]
 	blt display_3
 	add r11, r11, #1
 	mov r6, r11
@@ -362,7 +370,9 @@ display_4:
 display_5:
 	ldr r1, =tim_int_flag
 	ldr r0, [r1]
-	cmp r1, #1
+	mov r3, #0
+	cmp r0, #1
+	streq r3, [r1]
 	blt display_3
 	add r12, r12, #1
 	mov r6, r12

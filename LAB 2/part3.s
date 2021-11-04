@@ -20,7 +20,7 @@ B SERVICE_FIQ       // FIQ interrupt vector
 .equ loadTimer, 0xFFFEC600
 .equ MaskBits, 0xFF200058
 .equ EdgeBits, 0xFF20005C
-initialCount: .word 1 // 10 milisecond
+initialCount: .word 2000000 // 10 milisecond
 
 _start:
     /* Set up stack pointers for IRQ and SVC processor modes */
@@ -44,8 +44,39 @@ _start:
     // enable IRQ interrupts in the processor
     MOV        R0, #0b01010011      // IRQ unmasked, MODE = SVC
     MSR        CPSR_c, R0
+	ldr r1, =HEX_3to0
+	mov r6, #0 //initialize count
+	mov r10, #0
+	bl HEX_write_ASM
+	mov r10, #0x1
+	bl HEX_write_ASM
+	mov r10, #0x2
+	bl HEX_write_ASM
+	mov r10, #0x3
+	bl HEX_write_ASM
+	mov r10, #0x10
+	bl HEX_write_ASM
+	mov r10, #0x11
+	bl HEX_write_ASM
+	mov r10, #0x0
+	mov r8, #0x0
+	mov r9, #0x0
+	mov r11, #0x0
+	mov r12, #0x0
+	mov r6, #0
+	
+
 IDLE:
-    B IDLE // This is where you write your objective task
+	ldr r0, =PB_int_flag
+	ldr r1, [r0]
+	cmp r1, #0b001
+	beq display_0
+	cmp r1, #0b011
+	bleq PB_clear_edgecp_ASM
+	cmp r1, #0b100
+	bleq PB_clear_edgecp_ASM
+	beq _start
+    B IDLE 
 	
 
 /*--- Undefined instructions ---------------------------------------- */
@@ -101,7 +132,8 @@ CONFIG_GIC:
     MOV R1, #1   //CHANGE          // this field is a bit-mask; bit 0 targets cpu0
     BL CONFIG_INTERRUPT
 	MOV R0, #73            // KEY port (Interrupt ID = 73)
-    MOV R1, #1             // this field is a bit-mask; bit 0 targets cpu0
+    //mov r3, #0
+	MOV R1, #1             // this field is a bit-mask; bit 0 targets cpu0
     BL CONFIG_INTERRUPT
 	
 
@@ -174,9 +206,8 @@ ARM_TIM_config_ASM:
 	str r0, [r2] //loading initial count value into timer
 	mov r3, #0b111 // I=1, A=1, E=1
 	strb r3, [r2, #0x8] // write to timer control register
-	mov r3, #0b0
-	strb r3, [r2, #0x9] //store vlaue 1 in the prescaler
-	//CLEAR TIME HAS REACHED 0?
+	//mov r3, #0b0
+	//strb r3, [r2, #0x9] //store vlaue 1 in the prescaler
 	bx lr
 
 enable_PB_INT_ASM:
@@ -189,54 +220,21 @@ enable_PB_INT_ASM:
 
 
 ARM_TIM_ISR:
+	//add r3, r3, #1
 	ldr r0, =0xFFFEC60C
 	ldr r1, [r0]
-	mov r2, #1
-	cmp r1, #1
-	streq r2, [r0]
+	str r1, [r0]
 	ldr r0, =tim_int_flag
-	cmp r1, #1
-	streq r1, [r0]
+	//mov r2, #0
+	//str r2, [r0]
+	str r1, [r0]
 	bx lr
 
 
-/*
-ARM_TIM_config_ASM:
-	
-	ldr r0, initialCount
-	mov r10, #0
-	ldr r2, =loadTimer //getting address timer
-	str r0, [r2] //loading initial count value into timer
-	mov r3, #0b011 // set bits: mode = 1 (auto), enable = 1
-	strb r3, [r2, #0x8] // write to timer control register
-	mov r3, #0b00
-	strb r3, [r2, #0x9] //store vlaue 1 in the prescaler
-	mov r7, #0x0
-	mov r8, #0x0
-	mov r9, #0x0
-	mov r11, #0x0
-	mov r12, #0x0
-	mov r5,#0b000
-	bl PB_clear_edgecp_ASM
-	b read_PB_edgecp_ASM
+//Part from 2.2
 
-read_PB_edgecp_ASM:
-	ldr r0, =EdgeBits
-	ldr r5, [r0]
-	//check for start button
-	cmp r5, #0b001
-	beq ARM_TIM_read_INT_ASM
-	//cmp r5, #0b011
-	//beq ARM_TIM_read_INT_ASM
-	//check for stop button
-	cmp r5, #0b011
-	bleq PB_clear_edgecp_ASM
-	//check for reset button
-	cmp r5, #0b100
-	bleq PB_clear_edgecp_ASM
-	beq _start
-	
-	b read_PB_edgecp_ASM
+
+
 	
 PB_clear_edgecp_ASM:
 	push {r2, r3}
@@ -246,42 +244,38 @@ PB_clear_edgecp_ASM:
 	pop {r2, r3}
 	bx lr
 	
-	
-ARM_TIM_read_INT_ASM:
-	mov r6, #0
-	ldr r1, =HEX_3to0
-	b display_0
-	//subgt r10, r10, #0x1
-	//beq display_1
-	//b ARM_TIM_read_INT_ASM
 
 display_0:
-	ldr r3, [r2, #0xC] //WHERE SHOULD I STORE IT?
-	cmp r3, #1
+	ldr r1, =tim_int_flag
+	ldr r0, [r1]
+	mov r3, #0
+	cmp r0, #1
+	streq r3, [r1]
 	blt display_0
 	bleq HEX_write_ASM
 	add r6, r6, #1
 	bl ARM_TIM_clear_INT_ASM
 	cmp r6, #10
 	blt display_0
-	//mov r6, #0
-	//bl HEX_write_ASM
 	add r10, r10, #0x1
 	beq display_1
 	
 display_1:	
-	cmp r3, #1
+	ldr r1, =tim_int_flag
+	ldr r0, [r1]
+	mov r3, #0
+	cmp r0, #1
+	streq r3, [r1]
 	blt display_1
 	add r7, r7, #1
 	mov r6, r7
-	//
 	cmp r7, #10
 	bllt HEX_write_ASM
 	bllt ARM_TIM_clear_INT_ASM
 	mov r10, #0x0
 	mov r6, #0x0
 	cmp r7, #10
-	bllt read_PB_edgecp_ASM
+	bllt IDLE
 	mov r7, #0
 	mov r6, r7
 	bl HEX_write_ASM
@@ -290,11 +284,14 @@ display_1:
 	b display_2
 	
 display_2:
-	cmp r3, #1
+	ldr r1, =tim_int_flag
+	ldr r0, [r1]
+	mov r3, #0
+	cmp r0, #1
+	streq r3, [r1]
 	blt display_2
 	add r8, r8, #1
 	mov r6, r8
-	//
 	cmp r8, #10
 	bllt HEX_write_ASM
 	bllt ARM_TIM_clear_INT_ASM
@@ -306,15 +303,16 @@ display_2:
 	cmp r8, #10
 	bllt HEX_write_ASM
 	cmp r8, #10
-	blt read_PB_edgecp_ASM //change to link?
-	//mov r8, #0
-	//mov r6, r8
-	//bl HEX_write_ASM
-	//bl ARM_TIM_clear_INT_ASM
+	blt IDLE 
 	add r10, r10, #0x3
 	b display_3
 display_3:
-	cmp r3, #1
+	
+	ldr r1, =tim_int_flag
+	ldr r0, [r1]
+	mov r3, #0
+	cmp r0, #1
+	streq r3, [r1]
 	blt display_3
 	add r9, r9, #1
 	mov r6, r9
@@ -334,20 +332,19 @@ display_3:
 	bllt HEX_write_ASM
 	mov r8, #0
 	cmp r9, #6
-	blt read_PB_edgecp_ASM //change to link?
-	//mov r8, #0
-	//mov r6, r8
-	//bl HEX_write_ASM
-	//bl ARM_TIM_clear_INT_ASM
+	blt IDLE 
 	mov r10, #0x10
 	b display_4
 	
 display_4:
-	cmp r3, #1
+	ldr r1, =tim_int_flag
+	ldr r0, [r1]
+	mov r3, #0
+	cmp r0, #1
+	streq r3, [r1]
 	blt display_3
 	add r11, r11, #1
 	mov r6, r11
-	//
 	cmp r11, #10
 	bllt HEX_write_ASM
 	bllt ARM_TIM_clear_INT_ASM
@@ -367,16 +364,19 @@ display_4:
 	mov r8, #0
 	mov r9, #0
 	cmp r11, #10
-	blt read_PB_edgecp_ASM //change to link?
+	blt IDLE //change to link?
 	mov r10, #0x11
 	b display_5
 	
 display_5:
-	cmp r3, #1
+	ldr r1, =tim_int_flag
+	ldr r0, [r1]
+	mov r3, #0
+	cmp r0, #1
+	streq r3, [r1]
 	blt display_3
 	add r12, r12, #1
 	mov r6, r12
-	//
 	cmp r12, #6
 	bllt HEX_write_ASM
 	bllt ARM_TIM_clear_INT_ASM
@@ -400,7 +400,7 @@ display_5:
 	mov r9, #0
 	mov r11, #0
 	cmp r12, #6
-	blt read_PB_edgecp_ASM //change to link?
+	blt IDLE //change to link?
 	b end
 	
 ARM_TIM_clear_INT_ASM:
@@ -482,8 +482,3 @@ next:
 	strb r5, [r1, r10]
 	pop {r5}
 	bx lr
-
-	
-end:
-	 b end
-*/	
