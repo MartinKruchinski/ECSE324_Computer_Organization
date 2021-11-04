@@ -20,7 +20,7 @@ B SERVICE_FIQ       // FIQ interrupt vector
 .equ loadTimer, 0xFFFEC600
 .equ MaskBits, 0xFF200058
 .equ EdgeBits, 0xFF20005C
-initialCount: .word 20000000 // 10 milisecond
+initialCount: .word 1 // 10 milisecond
 
 _start:
     /* Set up stack pointers for IRQ and SVC processor modes */
@@ -189,12 +189,15 @@ enable_PB_INT_ASM:
 
 
 ARM_TIM_ISR:
-	ldr r0, =tim_int_flag
+	ldr r0, =0xFFFEC60C
+	ldr r1, [r0]
 	mov r2, #1
-	str r2, [r0]
+	cmp r1, #1
+	streq r2, [r0]
+	ldr r0, =tim_int_flag
+	cmp r1, #1
+	streq r1, [r0]
 	bx lr
-
-
 
 
 /*
