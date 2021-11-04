@@ -57,8 +57,10 @@ ARM_TIM_read_INT_ASM:
 	
 
 ARM_TIM_clear_INT_ASM:
+	push {r4}
 	mov r4, #0x00000001
 	strb r4, [r2, #0xC]
+	pop {r4}
 	bx lr
 
 HEX_write_ASM:
