@@ -10,80 +10,69 @@
 .equ MaskBits, 0xFF200058
 .equ EdgeBits, 0xFF20005C
 
-
-_start:
-	//CODE FOR SWITCHES AND LEDS
-	bl read_slider_switches_ASM
-	mov r5, #0x00000200
-	cmp r0, r5
-	blge HEX_clear_ASM
-	bl write_LEDs_ASM
-	bl read_PB_edgecp_ASM
-	bl HEX_write_ASM
-	//bl HEX_clear_ASM
-	b _start
-	
-	
-	
-	
-// Sider Switches Driver
-// returns the state of slider switches in R0
+// ************************HELPER FUNCTIONS*****************************
 read_slider_switches_ASM:
     LDR R1, =SW_MEMORY
     LDR R0, [R1]
     BX  LR
-	
-// LEDs Driver
-// writes the state of LEDs (On/Off state) in R0 to the LEDs memory location
+
 write_LEDs_ASM:
     LDR R1, =LED_MEMORY
     STR R0, [R1]
     BX  LR
-
-//HEX DRIVERS
+	
 HEX_clear_ASM:
-	push {lr}
-	mov r11, #0b01111111
-	ldr r2, =HEX_3to0
-	ldr r3, =HEX_4to5
-	mov r7, #0 //hex1_counter
-	mov r8, #0 //hex2_counter
+	push {r5}
+	ldr r1, =0xFF200020
 	mov r5, #0x00000000
-	bl next
+	str r5, [r1]
+	ldr r1, =0xFF200030
+	str r5, [r1]
+	pop {r5}
 	bx lr
 	
 HEX_flood_ASM:
-	push {lr}
-	ldr r2, =HEX_3to0
-	ldr r3, =HEX_4to5
-	mov r7, #0 //hex1_counter
-	mov r8, #0 //hex2_counter
-	//b flood_first
+	push {r5}
+	ldr r1, =0xFF200030
 	mov r5, #0xFFFFFFFF
-	bl next
+	str r5, [r1]
+	pop {r5}
 	bx lr
 
-HEX_write_ASM:
-	push {r0, r5, r11, lr}
-	ldr r2, =HEX_3to0
-	ldr r5, [r2]
-	//flood last two
-	mov r0, #0
-	mov r11, #0b00110000
-	cmp r5, #0
-	blgt HEX_flood_ASM
-	pop {r0,r5, r11}
-	//end of flood last two
-	//clear push buttons
-	bl PB_clear_edgecp_ASM
-	//end clear button
-	ldr r2, =HEX_3to0
-	ldr r3, =HEX_4to5
-	mov r7, #0 //first hex counter
-	mov r8, #0 //second hex counter
-	b get_hexs
+read_PB_edgecp_ASM:
+	ldr r1, =EdgeBits
+	ldr r2, [r1]
+	bx lr
 
-get_hexs: //get hexadecimal value
+PB_clear_edgecp_ASM:
+	ldr r1, =EdgeBits
+	push {r8}
+	ldr r8, [r1]
+	str r8, [r1]
+	pop {r8}
+	bx lr
+	
+// ************************START OF THE PROGRAM***********************
+_start:
+	bl read_slider_switches_ASM
+	bl write_LEDs_ASM
+	mov r10, #0x00000200
+	cmp r0, r10
+	blge HEX_clear_ASM //clear if sw9 is pressed
+	bge _start
+	bl HEX_flood_ASM //flood last two if sw9 while not pressed
+	bl read_PB_edgecp_ASM //read pushbuttons and store in r2
+	cmp r2, #0
+	blgt HEX_write_ASM
+	b _start
+
+
+// **********************Write HEX functions*****************************
+HEX_write_ASM:
+	ldr r1, =HEX_3to0
+	mov r3, #0 //counter
+	push {r4, r5, lr}
+	//GET THE HEX VALUE
 	cmp r0, #0
 	mov r5, #0b0111111 //encoding number 0 binary
 	beq next
@@ -149,69 +138,18 @@ get_hexs: //get hexadecimal value
 	beq next
 	
 next:
-	and r6, r11, #1
-	cmp r6, #1
+	and r4, r2, #1
+	cmp r4, #1
 	bleq ecrire_un
-	add r2, r2, #1
-	add r7, r7, #1
-	lsr r11, #1
-	cmp r7, #4
+	add r1, r1, #1
+	add r3, r3, #1
+	lsr r2, #1
+	cmp r3, #4
 	blt next
-	bleq ecrire_deux
-	pop {lr}
+	bl PB_clear_edgecp_ASM // clear pushbuttons
+	pop {r4, r5, lr}
 	bx lr
 	
 ecrire_un:
-	strb r5, [r2]
+	strb r5, [r1]
 	bx lr
-
-ecrire_deux:
-	push {lr}
-	and r6, r11, #1
-	cmp r6, #1
-	bleq deux 
-	lsr r11, #1
-	add r8, r8, #1
-	add r3, r3, #1
-	cmp r8, #2
-	blt ecrire_deux
-	pop {lr}
-	bx lr
-deux: 
-	strb r5, [r3]
-	bx lr
-	
-	
-//BUTTONS DRIVERS
-
-read_PB_data_ASM:
-	ldr r1, =pushButtons //base address
-	ldr r0, [r1] //store value in r0 (it is already encoded)
-	bx lr //return
-
-read_PB_edgecp_ASM:
-	ldr r10, =EdgeBits
-	ldr r11, [r10]
-	bx lr
-	
-PB_clear_edgecp_ASM:
-	ldr r2, =EdgeBits
-	ldr r3, [r2]
-	str r3, [r2]
-	bx lr
-
-enable_PB_INT_ASM:
-	push {r4}
-	ldr r4, =MaskBits
-	str r6, [r4]
-	pop {r4}
-	bx lr
-
-disable_PB_INT_ASM:
-	ldr r4, =MaskBits
-	mov r7, #0b00001111 //set all bits to 1
-	eor r6, r6, r7 //xor to set only input to 0
-	str r6, [r4] //store final 4 bits in maskbits address
-	
-end:
-	b end
