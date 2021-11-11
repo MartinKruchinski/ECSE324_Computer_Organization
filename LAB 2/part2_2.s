@@ -176,6 +176,11 @@ poll:
 	bleq PB_clear_edgecp_ASM
 	beq _start
 	
+	cmp r0, #0b101
+	bleq PB_clear_edgecp_ASM
+	beq _start
+	
+	
 	b poll
 	
 main_loop:
@@ -186,7 +191,7 @@ push {lr}
 	bl HEX_write_ASM
 	bl ARM_TIM_clear_INT_ASM
 	add r2, r2, #1 //add 1 to counter display 0
-	cmp r2, #10
+	cmp r2, #11
 	poplt {lr}
 	bxlt lr
 	
@@ -202,7 +207,7 @@ push {lr}
 	mov r2, r3
 	bl HEX_write_ASM
 	bl ARM_TIM_clear_INT_ASM
-	mov r2, #0 //reset counter hex0 to 0
+	mov r2, #1 //reset counter hex0 to 0
 	cmp r3, #10
 	poplt {lr}
 	bxlt lr

@@ -9,7 +9,7 @@
 .equ countTimer, 0xFFFEC604
 .equ controlRegister, 0xFFFEC608
 .equ interruptStatus, 0xFFFEC60C
-initialCount: .word 200000000
+initialCount: .word 2000000
 _start:
 	mov r6, #0b00000000 //initialize count
 	bl HEX_write_ASM

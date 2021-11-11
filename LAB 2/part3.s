@@ -63,10 +63,16 @@ _start:
     MOV        R0, #0b01010011      // IRQ unmasked, MODE = SVC
     MSR        CPSR_c, R0
 	
-	//
+	//reset int flag to 0 when restarting program
+	LDR R0, =PB_int_flag
+	mov r1, #0x0
+	str r1, [r0]
+	
+	//fill everything with 0s
 	bl HEX_flood_ASM
 	mov r2, #0 //COUNTER FOR HEX 0
 	mov r3, #0 //counter for hex 1
+	
 
 IDLE:
 	ldr r1, =tim_int_flag
@@ -268,7 +274,7 @@ push {lr}
 	//add r1, r1, #1
 	bl HEX_write_ASM
 	add r2, r2, #1 //add 1 to counter display 0
-	cmp r2, #10
+	cmp r2, #11
 	poplt {lr}
 	bxlt lr
 	
@@ -283,7 +289,7 @@ push {lr}
 	add r3, r3, #1
 	mov r2, r3
 	bl HEX_write_ASM
-	mov r2, #0 //reset counter hex0 to 0
+	mov r2, #1 //reset counter 
 	cmp r3, #10
 	poplt {lr}
 	bxlt lr
