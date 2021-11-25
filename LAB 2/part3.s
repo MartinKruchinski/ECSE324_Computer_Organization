@@ -70,8 +70,17 @@ _start:
 	
 	//fill everything with 0s
 	bl HEX_flood_ASM
+	//Clear counters
 	mov r2, #0 //COUNTER FOR HEX 0
 	mov r3, #0 //counter for hex 1
+	ldr r1, =ctrHex_2
+	str r2, [r1]
+	ldr r1, =ctrHex_3
+	str r2, [r1]
+	ldr r1, =ctrHex_4
+	str r2, [r1]
+	ldr r1, =ctrHex_5
+	str r2, [r1]
 	
 
 IDLE:

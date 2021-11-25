@@ -153,34 +153,37 @@ ARM_TIM_config_ASM:
 	mov r3, #0b00
 	strb r3, [r2, #0x9] //store vlaue 1 in the prescaler
 	bl PB_clear_edgecp_ASM
+	
+	//Clear all counters
+	
 	mov r2, #0 //COUNTER FOR HEX 0
 	mov r3, #0 //counter for hex 1
-	mov r4, #0 //counter for hex 2
+	mov r4, #0 
+	ldr r1, =ctrHex_2
+	str r2, [r1]
+	ldr r1, =ctrHex_3
+	str r2, [r1]
+	ldr r1, =ctrHex_4
+	str r2, [r1]
+	ldr r1, =ctrHex_5
+	str r2, [r1]
 	
 	
 poll:
-	bl ARM_TIM_read_INT_ASM
-	cmp r0, #1
-	blt poll
-	
-	//Read edgcp
-	bl read_PB_edgecp_ASM
-	
-	cmp r0, #0b001
+	bl ARM_TIM_read_INT_ASM //Read F bit
+	cmp r0, #1 //compare F bit
+	blt poll //Re read again if not 1
+	bl read_PB_edgecp_ASM //Read edgcp
+	cmp r0, #0b001 //Start
 	bleq main_loop
-		
-	cmp r0, #0b011
+	cmp r0, #0b011 //Stop
 	bleq PB_clear_edgecp_ASM
-	
-	cmp r0, #0b100
+	cmp r0, #0b100 //Reset
 	bleq PB_clear_edgecp_ASM
 	beq _start
-	
-	cmp r0, #0b101
+	cmp r0, #0b101 //Reset
 	bleq PB_clear_edgecp_ASM
 	beq _start
-	
-	
 	b poll
 	
 main_loop:
