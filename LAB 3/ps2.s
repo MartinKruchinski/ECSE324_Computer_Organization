@@ -107,7 +107,7 @@ read_PS2_data_ASM:
 	popeq {r3}
 	bxeq lr
 	strb r2, [r0]
-	mov r0, #1
+	mov r0, #1 
 	pop {r3}
 	bx lr
 
