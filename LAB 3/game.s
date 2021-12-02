@@ -4,6 +4,23 @@ player_wins: .word 0x0
 .equ pixelBuffer, 0xc8000000
 .equ charBuffer, 0xc9000000
 .equ ps2Data, 0xFF200100
+checkifnice: .space 4
+//Player marks
+box1: .space 4
+box2: .space 4
+box3: .space 4
+box4: .space 4
+box5: .space 4
+box6: .space 4
+box7: .space 4
+box8: .space 4
+box9: .space 4
+
+streak_1: .space 4
+streak_2: .space 4
+
+hasStarted: .space 4
+
 .global _start
 
 //Adresses
@@ -11,300 +28,771 @@ white_screen: .word 0xffff
 red_color: .word 0xf200
 
 _start:
-        bl VGA_clear_pixelbuff_ASM //set background to white
+		//clear everything when restarting game
+		push {r7, r8}
+		mov r8, #0
+		ldr r7, =box1
+		str r8, [r7]
+		ldr r7, =box2
+		str r8, [r7]
+		ldr r7, =box3
+		str r8, [r7]
+		ldr r7, =box4
+		str r8, [r7]
+		ldr r7, =box5
+		str r8, [r7]
+		ldr r7, =box6
+		str r8, [r7]
+		ldr r7, =box7
+		str r8, [r7]
+		ldr r7, =box8
+		str r8, [r7]
+		ldr r7, =box9
+		str r8, [r7]
+		ldr r7, =streak_1
+		str r8, [r7]
+		ldr r7, =streak_2
+		str r8, [r7]
+		ldr r7, =players_turn
+		str r8, [r7]
+		pop {r7, r8}
+		push {r10}
+		ldr r10, =hasStarted
+		mov r1, #0
+		str r1, [r10]
+		push {r10}
+		//end clear
+		
+        bl VGA_clear_pixelbuff_ASM //set background to red
 		bl VGA_clear_charbuff_ASM
 		bl draw_board //draw board
 		b  input_loop
 
 input_loop:
+	ldr r0, =checkifnice
     bl   read_PS2_data_ASM
 	cmp     r0, #0
 	beq input_loop
-	ldr r1, =0xFF200100
-	ldrb r2, [r1]
-	//check for key 0 pressed
-	cmp r2, #69
+	push {r5}
+	ldr r5, =checkifnice
+	ldr r2, [r5]
+	pop {r5}
+	push {r8, r9}
+	ldr r9, =ps2Data
+	ldr r8, [r9]
+	ldr r8, [r9]
+	pop {r8, r9}
+	cmp r2, #0x45
 	bne	input_loop
 	bl Player_turn_ASM //write player's turn
+	push {r5}
+	ldr r5, =checkifnice
+	mov r1, #0
+	str r1, [r5]
+	pop {r5}
 	b game_starts
 
+
 game_starts:
+	ldr r0, =checkifnice
     bl   read_PS2_data_ASM
 	cmp     r0, #0
 	beq game_starts
-	ldr r1, =0xFF200100
-	ldrb r2, [r1]
 	
+	//get make value
+	push {r5}
+	ldr r5, =checkifnice
+	ldr r2, [r5]
+	pop {r5}
+	
+	//clear
+	push {r8, r9}
+	ldr r9, =ps2Data
+	ldr r8, [r9]
+	ldr r8, [r9]
+	pop {r8, r9}
+	//end clear
+	
+	
+first_box:
 	//check first box
-	cmp r2, #22
-	mov r2, #0xf
-	mov r0, #70
-	mov r1, #30
+	cmp r2, #0x16
+	bne	second_box
+	push {r10}
+	ldr r10, =box1
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	bne	second_box
+	moveq r2, #0xf
+	moveq r0, #70
+	moveq r1, #30
 	bleq draw_square
-	ldr r1, =0xFF200100
-	ldr r2, [r1] //get value of ps2_data
-	ldr r2, [r1] //get value of ps2_data
+	push {r9, r10}
+	ldr r10, =box1
+	mov r9, #1
+	str r9, [r10]
+	ldr r10, =streak_1
+	ldr r9, [r10]
+	add r9, r9, #1
+	str r9, [r10]
+	pop {r9, r10}
 	beq Change_to_player_2
-	
+
+second_box:
 	//check second box
-	bl   read_PS2_data_ASM
 	cmp r2, #30
-	mov r0, #139
-	mov r1, #30
-	mov r2, #0xf
+	bne	third_box
+	push {r10}
+	ldr r10, =box2
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	bne	third_box
+	moveq r0, #139
+	moveq r1, #30
+	moveq r2, #0xf
 	bleq draw_square
-	ldr r1, =0xFF200100
-	ldr r2, [r1] //get value of ps2_data
-	ldr r2, [r1] //get value of ps2_data
+	push {r9, r10}
+	ldr r10, =box2
+	mov r9, #1
+	str r9, [r10]
+	ldr r10, =streak_1
+	ldr r9, [r10]
+	add r9, r9, #2
+	str r9, [r10]
+	pop {r9, r10}
 	beq Change_to_player_2
-	
+
+third_box:
 	//check third box
-	bl   read_PS2_data_ASM
 	cmp r2, #38
-	mov r0, #208
-	mov r1, #30
-	mov r2, #0xf
+	bne	fourth_box
+	push {r10}
+	ldr r10, =box3
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	bne	fourth_box
+	moveq r0, #208
+	moveq r1, #30
+	moveq r2, #0xf
 	bleq draw_square
-	ldr r1, =0xFF200100
-	ldr r2, [r1] //get value of ps2_data
-	ldr r2, [r1] //get value of ps2_data
+	push {r9, r10}
+	ldr r10, =box3
+	mov r9, #1
+	str r9, [r10]
+	ldr r10, =streak_1
+	ldr r9, [r10]
+	add r9, r9, #4
+	str r9, [r10]
+	pop {r9, r10}
 	beq Change_to_player_2
-	
+
+fourth_box:
 	//check 4 box
-	bl   read_PS2_data_ASM
 	cmp r2, #37
-	mov r0, #70
-	mov r1, #99
-	mov r2, #0xf
+	bne	fifth_box
+	push {r10}
+	ldr r10, =box4
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	bne	fifth_box
+	moveq r0, #70
+	moveq r1, #99
+	moveq r2, #0xf
 	bleq draw_square
-	ldr r1, =0xFF200100
-	ldr r2, [r1] //get value of ps2_data
-	ldr r2, [r1] //get value of ps2_data
+	push {r9, r10}
+	ldr r10, =box4
+	mov r9, #1
+	str r9, [r10]
+	ldr r10, =streak_1
+	ldr r9, [r10]
+	add r9, r9, #8
+	str r9, [r10]
+	pop {r9, r10}
 	beq Change_to_player_2
-	
+
+fifth_box:
 	//check 5 box
-	bl   read_PS2_data_ASM
 	cmp r2, #46
-	mov r0, #139
-	mov r1, #99
-	mov r2, #0xf
+	bne	six_box
+	push {r10}
+	ldr r10, =box5
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	bne	six_box
+	moveq r0, #139
+	moveq r1, #99
+	moveq r2, #0xf
 	bleq draw_square
-	ldr r1, =0xFF200100
-	ldr r2, [r1] //get value of ps2_data
-	ldr r2, [r1] //get value of ps2_data
+	push {r9, r10}
+	ldr r10, =box5
+	mov r9, #1
+	str r9, [r10]
+	ldr r10, =streak_1
+	ldr r9, [r10]
+	add r9, r9, #16
+	str r9, [r10]
+	pop {r9, r10}
 	beq Change_to_player_2
 	
-	
+six_box:	
 	//check 6 box
-	bl   read_PS2_data_ASM
 	cmp r2, #54
-	mov r0, #208
-	mov r1, #99
-	mov r2, #0xf
+	bne	seven_box
+	push {r10}
+	ldr r10, =box6
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	bne	seven_box
+	moveq r0, #208
+	moveq r1, #99
+	moveq r2, #0xf
 	bleq draw_square
-	ldr r1, =0xFF200100
-	ldr r2, [r1] //get value of ps2_data
-	ldr r2, [r1] //get value of ps2_data
+	push {r9, r10}
+	ldr r10, =box6
+	mov r9, #1
+	str r9, [r10]
+	ldr r10, =streak_1
+	ldr r9, [r10]
+	add r9, r9, #32
+	str r9, [r10]
+	pop {r9, r10}
 	beq Change_to_player_2
-	
+
+seven_box:
 	//check 7 box
-	bl   read_PS2_data_ASM
 	cmp r2, #61
-	mov r0, #70
-	mov r1, #168
-	mov r2, #0xf
+	bne	eigth_box
+	push {r10}
+	ldr r10, =box7
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	bne	eigth_box
+	moveq r0, #70
+	moveq r1, #168
+	moveq r2, #0xf
 	bleq draw_square
-	ldr r1, =0xFF200100
-	ldr r2, [r1] //get value of ps2_data
-	ldr r2, [r1] //get value of ps2_data
+	push {r9, r10}
+	ldr r10, =box7
+	mov r9, #1
+	str r9, [r10]
+	ldr r10, =streak_1
+	ldr r9, [r10]
+	add r9, r9, #64
+	str r9, [r10]
+	pop {r9, r10}
 	beq Change_to_player_2
-	
+
+eigth_box:
 	//check 8 box
-	bl   read_PS2_data_ASM
 	cmp r2, #62
-	mov r0, #139
-	mov r1, #168
-	mov r2, #0xf
+	bne	nine_box
+	push {r10}
+	ldr r10, =box8
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	bne	nine_box
+	moveq r0, #139
+	moveq r1, #168
+	moveq r2, #0xf
 	bleq draw_square
-	ldr r1, =0xFF200100
-	ldr r2, [r1] //get value of ps2_data
-	ldr r2, [r1] //get value of ps2_data
+	push {r9, r10}
+	ldr r10, =box8
+	mov r9, #1
+	str r9, [r10]
+	ldr r10, =streak_1
+	ldr r9, [r10]
+	add r9, r9, #128
+	str r9, [r10]
+	pop {r9, r10}
+	beq Change_to_player_2
+
+nine_box:
+	//check 9 box
+	cmp r2, #70
+	bne is0
+	push {r10}
+	ldr r10, =box9
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	bne	is0
+	moveq r0, #208
+	moveq r1, #168
+	moveq r2, #0xf
+	bleq draw_square
+	push {r9, r10}
+	ldr r10, =box9
+	mov r9, #1
+	str r9, [r10]
+	ldr r10, =streak_1
+	ldr r9, [r10]
+	add r9, r9, #256
+	str r9, [r10]
+	pop {r9, r10}
 	beq Change_to_player_2
 	
-	//check 9 box
-	bl   read_PS2_data_ASM
-	cmp r2, #70
-	mov r0, #208
-	mov r1, #168
-	mov r2, #0xf
-	bleq draw_square
-	ldr r1, =0xFF200100
-	ldr r2, [r1] //get value of ps2_data
-	ldr r2, [r1] //get value of ps2_data
-	beq Change_to_player_2
+is0:
+	push {r10}
+	ldr r10, =hasStarted
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	beq game_starts
+	cmp r2, #0x45
+	beq _start
+	bne game_starts
 	
 	b game_starts
 	
 	
 game_starts_2:
+    ldr r0, =checkifnice
     bl   read_PS2_data_ASM
 	cmp     r0, #0
 	beq game_starts_2
-	ldr r1, =ps2Data
-	ldrb r2, [r1]
+	
+	//get make value
+	push {r5}
+	ldr r5, =checkifnice
+	ldr r2, [r5]
+	pop {r5}
+	
+	//clear
+	push {r8, r9}
+	ldr r9, =ps2Data
+	ldr r8, [r9]
+	ldr r8, [r9]
+	pop {r8, r9}
+	//end clear
+	cmp r2, #0x45
+	beq _start
 	
 	//check first box
-	cmp r2, #22
-	mov r2, #0xff0
-	mov r0, #89
-	mov r1, #30
+first_box_1:
+	//check first box
+	cmp r2, #0x16
+	bne	second_box_1
+	push {r10}
+	ldr r10, =box1
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	bne	second_box_1
+	moveq r2, #0xff0
+	moveq r0, #89
+	moveq r1, #30
 	bleq draw_cross
-	ldr r1, =0xFF200100
-	ldr r2, [r1] //get value of ps2_data
-	ldr r2, [r1] //get value of ps2_data
+	push {r9, r10}
+	ldr r10, =box1
+	mov r9, #1
+	str r9, [r10]
+	ldr r10, =streak_2
+	ldr r9, [r10]
+	add r9, r9, #1
+	str r9, [r10]
+	pop {r9, r10}
 	beq Change_to_player_1
-	
+
+second_box_1:
 	//check second box
-	bl   read_PS2_data_ASM
 	cmp r2, #30
-	mov r0, #158
-	mov r1, #30
-	mov r2, #0xff0
+	bne	third_box_1
+	push {r10}
+	ldr r10, =box2
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	bne	third_box_1
+	moveq r0, #158
+	moveq r1, #30
+	moveq r2, #0xff0
 	bleq draw_cross
-	ldr r1, =0xFF200100
-	ldr r2, [r1] //get value of ps2_data
-	ldr r2, [r1] //get value of ps2_data
+	push {r9, r10}
+	ldr r10, =box2
+	mov r9, #1
+	str r9, [r10]
+	ldr r10, =streak_2
+	ldr r9, [r10]
+	add r9, r9, #2
+	str r9, [r10]
+	pop {r9, r10}
 	beq Change_to_player_1
-	
+
+third_box_1:
 	//check third box
-	bl   read_PS2_data_ASM
 	cmp r2, #38
-	mov r0, #227
-	mov r1, #30
-	mov r2, #0xff0
+	bne	fourth_box_1
+	push {r10}
+	ldr r10, =box3
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	bne	fourth_box_1
+	moveq r0, #227
+	moveq r1, #30
+	moveq r2, #0xff0
 	bleq draw_cross
-	ldr r1, =0xFF200100
-	ldr r2, [r1] //get value of ps2_data
-	ldr r2, [r1] //get value of ps2_data
+	push {r9, r10}
+	ldr r10, =box3
+	mov r9, #1
+	str r9, [r10]
+	ldr r10, =streak_2
+	ldr r9, [r10]
+	add r9, r9, #4
+	str r9, [r10]
+	pop {r9, r10}
 	beq Change_to_player_1
-	
+
+fourth_box_1:
 	//check 4 box
-	bl   read_PS2_data_ASM
 	cmp r2, #37
-	mov r0, #89
-	mov r1, #99
-	mov r2, #0xff0
+	bne	fifth_box_1
+	push {r10}
+	ldr r10, =box4
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	bne	fifth_box_1
+	moveq r0, #89
+	moveq r1, #99
+	moveq r2, #0xff0
 	bleq draw_cross
-	ldr r1, =0xFF200100
-	ldr r2, [r1] //get value of ps2_data
-	ldr r2, [r1] //get value of ps2_data
+	push {r9, r10}
+	ldr r10, =box4
+	mov r9, #1
+	str r9, [r10]
+	ldr r10, =streak_2
+	ldr r9, [r10]
+	add r9, r9, #8
+	str r9, [r10]
+	pop {r9, r10}
 	beq Change_to_player_1
-	
+
+fifth_box_1:
 	//check 5 box
-	bl   read_PS2_data_ASM
 	cmp r2, #46
-	mov r0, #158
-	mov r1, #99
-	mov r2, #0xff0
+	bne	six_box_1
+	push {r10}
+	ldr r10, =box5
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	bne	six_box_1
+	moveq r0, #158
+	moveq r1, #99
+	moveq r2, #0xff0
 	bleq draw_cross
-	ldr r1, =0xFF200100
-	ldr r2, [r1] //get value of ps2_data
-	ldr r2, [r1] //get value of ps2_data
+	push {r9, r10}
+	ldr r10, =box5
+	mov r9, #1
+	str r9, [r10]
+	ldr r10, =streak_2
+	ldr r9, [r10]
+	add r9, r9, #16
+	str r9, [r10]
+	pop {r9, r10}
 	beq Change_to_player_1
 	
-	
+six_box_1:	
 	//check 6 box
-	bl   read_PS2_data_ASM
 	cmp r2, #54
-	mov r0, #227
-	mov r1, #99
-	mov r2, #0xff0
+	bne	seven_box_1
+	push {r10}
+	ldr r10, =box6
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	bne	seven_box_1
+	moveq r0, #227
+	moveq r1, #99
+	moveq r2, #0xff0
 	bleq draw_cross
-	ldr r1, =0xFF200100
-	ldr r2, [r1] //get value of ps2_data
-	ldr r2, [r1] //get value of ps2_data
+	push {r9, r10}
+	ldr r10, =box6
+	mov r9, #1
+	str r9, [r10]
+	ldr r10, =streak_2
+	ldr r9, [r10]
+	add r9, r9, #32
+	str r9, [r10]
+	pop {r9, r10}
 	beq Change_to_player_1
-	
+
+seven_box_1:
 	//check 7 box
-	bl   read_PS2_data_ASM
 	cmp r2, #61
-	mov r0, #89
-	mov r1, #168
-	mov r2, #0xff0
+	bne	eigth_box_1
+	push {r10}
+	ldr r10, =box7
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	bne	eigth_box_1
+	moveq r0, #89
+	moveq r1, #168
+	moveq r2, #0xff0
 	bleq draw_cross
-	ldr r1, =0xFF200100
-	ldr r2, [r1] //get value of ps2_data
-	ldr r2, [r1] //get value of ps2_data
+	push {r9, r10}
+	ldr r10, =box7
+	mov r9, #1
+	str r9, [r10]
+	ldr r10, =streak_2
+	ldr r9, [r10]
+	add r9, r9, #64
+	str r9, [r10]
+	pop {r9, r10}
 	beq Change_to_player_1
-	
+
+eigth_box_1:
 	//check 8 box
-	bl   read_PS2_data_ASM
 	cmp r2, #62
-	mov r0, #158
-	mov r1, #168
-	mov r2, #0xff0
+	bne	nine_box_1
+	push {r10}
+	ldr r10, =box8
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	bne	nine_box_1
+	moveq r0, #158
+	moveq r1, #168
+	moveq r2, #0xff0
 	bleq draw_cross
-	ldr r1, =0xFF200100
-	ldr r2, [r1] //get value of ps2_data
-	ldr r2, [r1] //get value of ps2_data
+	push {r9, r10}
+	ldr r10, =box8
+	mov r9, #1
+	str r9, [r10]
+	ldr r10, =streak_2
+	ldr r9, [r10]
+	add r9, r9, #128
+	str r9, [r10]
+	pop {r9, r10}
 	beq Change_to_player_1
-	
+
+nine_box_1:
 	//check 9 box
-	bl   read_PS2_data_ASM
 	cmp r2, #70
-	mov r0, #227
-	mov r1, #168
-	mov r2, #0xff0
+	bne game_starts_2
+	push {r10}
+	ldr r10, =box9
+	ldr r1, [r10]
+	push {r10}
+	cmp r1, #0
+	bne	game_starts_2
+	moveq r0, #227
+	moveq r1, #168
+	moveq r2, #0xff0
 	bleq draw_cross
-	ldr r1, =0xFF200100
-	ldr r2, [r1] //get value of ps2_data
-	ldr r2, [r1] //get value of ps2_data
+	push {r9, r10}
+	ldr r10, =box9
+	mov r9, #1
+	str r9, [r10]
+	ldr r10, =streak_2
+	ldr r9, [r10]
+	add r9, r9, #256
+	str r9, [r10]
+	pop {r9, r10}
 	beq Change_to_player_1
 	
 	b game_starts_2
 	
 Change_to_player_1:
+	bl check_player_2_wins
+	bl checkIfEnd
 	mov r0, #0
 	mov r2, #0
 	bl	Player_turn_ASM
 	b	game_starts
 Change_to_player_2:
+	push {r10}
+	ldr r10, =hasStarted
+	mov r1, #1
+	str r1, [r10]
+	push {r10}
+	bl check_player_1_wins
+	bl checkIfEnd
 	mov r0, #0
 	mov r2, #0
 	bl	Player_turn_ASM
 	b	game_starts_2
 	
-/*
+end: b end
 
-		//draw square
-		mov r0, #70
-		mov r1, #30
-		push {r9}
-		ldr r9, =red_color
-		ldr r2, [r9]
-		pop {r9}
-		bl draw_square
-		
-		//draw cross
-		mov r0, #158
-		mov r1, #30
-		mov r2, #0xff0
-		push {r9}
-		ldr r9, =y_value
-		str r1, [r9]
-		pop {r9}
-		bl draw_cross
-		bl VGA_clear_charbuff_ASM
-		push {r3,r4}
-		ldr r4, =players_turn
-		ldr r3, [r4]
-		bl Player_turn_ASM
-		pop {r3, r4}
-		bl result_ASM
-*/		
-end:
-        b       end
-		
+check_player_1_wins:
+	ldr r0, =streak_1
+	ldr r2, [r0]
+	
+	//first combination
+	mov r0, #0
+	and r0, r2, #0b111
+	cmp r0, #0b111
+	beq result_ASM
+	
+	//second combination
+	mov r0, #0
+	and r0, r2, #73
+	cmp r0, #73
+	beq result_ASM
+	
+	//third combination
+	mov r0, #0
+	and r0, r2, #0b111000
+	cmp r0, #0b111000
+	beq result_ASM
+	
+	//four combination
+	mov r0, #0
+	and r0, r2, #0b10010010
+	cmp r0, #0b10010010
+	beq result_ASM
+	
+	//five combination
+	mov r0, #0
+	and r0, r2, #0b1010100
+	cmp r0, #0b1010100
+	beq result_ASM
+	
+	//six combination
+	mov r0, #0
+	mov r1, #0b111000000
+	//add r1, r1, #256
+	and r0, r2, r1
+	cmp r0, r1
+	beq result_ASM
+	
+	//seven combination first diagonal
+	mov r0, #0
+	mov r1, #0b10001
+	add r1, r1, #256
+	and r0, r2, r1
+	cmp r0, r1
+	beq result_ASM
+	
+	//eight combination
+	mov r0, #0
+	mov r1, #0b100100
+	add r1, r1, #256
+	and r0, r2, r1
+	cmp r0, r1
+	beq result_ASM
+
+	bx lr
+
+check_player_2_wins:
+	ldr r0, =streak_2
+	ldr r2, [r0]
+	
+	//first combination
+	mov r0, #0
+	and r0, r2, #0b111
+	cmp r0, #0b111
+	beq result_ASM
+	
+	//second combination
+	mov r0, #0
+	and r0, r2, #73
+	cmp r0, #73
+	beq result_ASM
+	
+	//third combination
+	mov r0, #0
+	and r0, r2, #0b111000
+	cmp r0, #0b111000
+	beq result_ASM
+	
+	//four combination
+	mov r0, #0
+	and r0, r2, #0b10010010
+	cmp r0, #0b10010010
+	beq result_ASM
+	
+	//five combination
+	mov r0, #0
+	and r0, r2, #0b1010100
+	cmp r0, #0b1010100
+	beq result_ASM
+	
+	//six combination
+	mov r0, #0
+	mov r1, #0b111000000
+	//add r1, r1, #256
+	and r0, r2, r1
+	cmp r0, r1
+	beq result_ASM
+	
+	//seven combination first diagonal
+	mov r0, #0
+	mov r1, #0b10001
+	add r1, r1, #256
+	and r0, r2, r1
+	cmp r0, r1
+	beq result_ASM
+	
+	//eight combination
+	mov r0, #0
+	mov r1, #0b100100
+	add r1, r1, #256
+	and r0, r2, r1
+	cmp r0, r1
+	beq result_ASM
+
+	bx lr
+	
+checkIfEnd:
+	ldr r0, =box1
+	ldrb r2, [r0]
+	cmp r2, #0
+	bxeq lr
+	
+	ldr r0, =box2
+	ldrb r2, [r0]
+	cmp r2, #0
+	bxeq lr
+	
+	ldr r0, =box3
+	ldrb r2, [r0]
+	cmp r2, #0
+	bxeq lr
+	
+	ldr r0, =box4
+	ldrb r2, [r0]
+	cmp r2, #0
+	bxeq lr
+	
+	ldr r0, =box5
+	ldrb r2, [r0]
+	cmp r2, #0
+	bxeq lr
+	
+	ldr r0, =box6
+	ldrb r2, [r0]
+	cmp r2, #0
+	bxeq lr
+	
+	ldr r0, =box7
+	ldrb r2, [r0]
+	cmp r2, #0
+	bxeq lr
+	
+	ldr r0, =box8
+	ldrb r2, [r0]
+	cmp r2, #0
+	bxeq lr
+	
+	ldr r0, =box9
+	ldrb r2, [r0]
+	cmp r2, #0
+	bxeq lr
+	
+	b finish_draw
+	
 
 Player_turn_ASM:
 		push {r3,r4,lr}
@@ -375,7 +863,6 @@ Player_turn_ASM:
 		bx lr
 
 result_ASM:
-		push {lr}
         mov     r2, #80
         mov     r1, #2
         mov     r0, #33
@@ -408,8 +895,8 @@ result_ASM:
 		ldr		r4, =players_turn
 		ldr		r3, [r4]
 		cmp 	r3, #0
-        moveq 	r2, #49
-		movgt	r2, #50
+        moveq 	r2, #50
+		movgt	r2, #49
 		pop		{r4}
         mov     r1, #2
         mov     r0, #40
@@ -434,10 +921,55 @@ result_ASM:
         mov     r1, #2
         mov     r0, #45
         bl      VGA_write_char_ASM
-		pop {lr}
-		bx lr
+		b idle		
+
+		
+finish_draw:
+		bl VGA_clear_charbuff_ASM //gonna cause problems when restarting
+        mov     r2, #68
+        mov     r1, #2
+        mov     r0, #37
+        bl      VGA_write_char_ASM
+        mov     r2, #82
+        mov     r1, #2
+        mov     r0, #38
+        bl      VGA_write_char_ASM
+        mov     r2, #65
+        mov     r1, #2
+        mov     r0, #39
+        bl      VGA_write_char_ASM
+        mov     r2, #87
+        mov     r1, #2
+        mov     r0, #40
+        bl      VGA_write_char_ASM
+		b 		idle
+		
+idle:
+	ldr r0, =checkifnice
+    bl   read_PS2_data_ASM
+	cmp     r0, #0
+	beq idle
+	
+	//get make value
+	push {r5}
+	ldr r5, =checkifnice
+	ldr r2, [r5]
+	pop {r5}
+	
+	//clear
+	push {r8, r9}
+	ldr r9, =ps2Data
+	ldr r8, [r9]
+	ldr r8, [r9]
+	pop {r8, r9}
+	
+	cmp r2, #0x45
+	beq _start
+	b idle
+
 // *************************** START OF DRAW BOARD DRIVER ***************************
 
+	
 draw_board:
 	push {lr}
 	//draw first line
@@ -698,10 +1230,13 @@ increment_y_char:
 	
 @ TODO: insert PS/2 driver here.
 read_PS2_data_ASM:
+	
 	push {r3}
 	ldr r1, =ps2Data //load address of ps2_data
+	
 	ldr r2, [r1] //get value of ps2_data
 	and r3, r2, #0b1000000000000000 //check bit 16 that is RVALID
+	
 	cmp r3, #0
 	moveq r0, #0
 	popeq {r3}
@@ -710,4 +1245,3 @@ read_PS2_data_ASM:
 	mov r0, #1
 	pop {r3}
 	bx lr
-	
