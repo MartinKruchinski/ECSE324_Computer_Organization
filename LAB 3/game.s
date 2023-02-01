@@ -4,7 +4,7 @@ player_wins: .word 0x0
 .equ pixelBuffer, 0xc8000000
 .equ charBuffer, 0xc9000000
 .equ ps2Data, 0xFF200100
-checkifnice: .space 4
+checkifnice: .space 4 //stores make code
 //Player marks
 box1: .space 4
 box2: .space 4
@@ -16,6 +16,7 @@ box7: .space 4
 box8: .space 4
 box9: .space 4
 
+//position of the players
 streak_1: .space 4
 streak_2: .space 4
 
@@ -92,6 +93,7 @@ input_loop:
 	pop {r5}
 	b game_starts
 
+//player one loop
 
 game_starts:
 	ldr r0, =checkifnice
@@ -352,7 +354,7 @@ is0:
 	
 	b game_starts
 	
-	
+//player two loop
 game_starts_2:
     ldr r0, =checkifnice
     bl   read_PS2_data_ASM
@@ -623,8 +625,8 @@ Change_to_player_2:
 	bl	Player_turn_ASM
 	b	game_starts_2
 	
-end: b end
 
+//check if player 2 has won
 check_player_1_wins:
 	ldr r0, =streak_1
 	ldr r2, [r0]
@@ -685,6 +687,7 @@ check_player_1_wins:
 
 	bx lr
 
+//check if player 2 has won
 check_player_2_wins:
 	ldr r0, =streak_2
 	ldr r2, [r0]
@@ -744,7 +747,8 @@ check_player_2_wins:
 	beq result_ASM
 
 	bx lr
-	
+
+//check if there is a draw
 checkIfEnd:
 	ldr r0, =box1
 	ldrb r2, [r0]
@@ -793,7 +797,7 @@ checkIfEnd:
 	
 	b finish_draw
 	
-
+//Driver to write the player's turn
 Player_turn_ASM:
 		push {r3,r4,lr}
 		ldr r4, =players_turn
@@ -862,6 +866,7 @@ Player_turn_ASM:
 		pop {r3, r4, lr}
 		bx lr
 
+//Driver to write result of the game
 result_ASM:
         mov     r2, #80
         mov     r1, #2
@@ -923,7 +928,7 @@ result_ASM:
         bl      VGA_write_char_ASM
 		b idle		
 
-		
+//Driver to write "Draw"	
 finish_draw:
 		bl VGA_clear_charbuff_ASM //gonna cause problems when restarting
         mov     r2, #68
@@ -944,6 +949,7 @@ finish_draw:
         bl      VGA_write_char_ASM
 		b 		idle
 		
+//When finishing goes here and checks for 0 to restart	
 idle:
 	ldr r0, =checkifnice
     bl   read_PS2_data_ASM
@@ -1228,7 +1234,7 @@ increment_y_char:
 	bxlt lr
 	bx lr //finished clearing
 	
-@ TODO: insert PS/2 driver here.
+//PS/2 driver.
 read_PS2_data_ASM:
 	
 	push {r3}
